@@ -202,6 +202,51 @@ My solution ([1](https://clojurians-log.clojureverse.org/beginners/2022-03-07/16
 
 => ([1 5 9 13] [2 6 10 14] [3 7 11 15] [4 8 12 16])
 ```
+### [Split on values](https://clojurians-log.clojureverse.org/beginners/2022-09-16/1663363687.771219)
+Example:
+```
+(split nil nil) -> nil
+(split '(1 2 3) '(true false)) -> ((1) (2 3))
+(split '(1 2 3) '(false true)) -> ((1 2) (3))
+(split '(1 2 3) '(true true)) -> ((1) (2) (3))
+```
+My solution:
+```
+(defn split [v1 v2]
+  (->> (interleave v1 (conj v2 (peek v2)))
+       (partition-by true?)
+       (remove #{[true]})
+       (map #(remove false? %))))
+
+(split nil nil)
+=> ()
+(split '(1 2 3) [true true])
+=> ((1) (2) (3))
+(split '(1 2 3) [false true])
+=> ((1 2) (3))
+(split '(1 2 3) [true false])
+=> ((1) (2 3))
+```
+### [Data to hash-map](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664370060.704369)
+Example:
+```
+({:name "name1", :id "61fd12debd75d9413d874a42"}
+ {:name "name2", :id "61dd3720ac8ceb2d1f4f8419"}
+ {:name "name3", :id "61dd404da88a335e39ac984b"})
+;into 
+"61fd12debd75d9413d874a42" name1
+"61dd3720ac8ceb2d1f4f8419" name2
+...
+```
+My solution (`reduce` variants: [1](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664370581.030139),[2](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664371426.920899),[3](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664371762.858699)):
+```
+(->> '({:name "name1", :id "61fd12debd75d9413d874a42"}
+       {:name "name2", :id "61dd3720ac8ceb2d1f4f8419"}
+       {:name "name3", :id "61dd404da88a335e39ac984b"})
+     (mapv (juxt :id :name))
+     (into {}))
+```
+
 ### [Set difference](https://clojurians-log.clojureverse.org/beginners/2022-08-05/1659700884.241839)
 ```
 (clojure.set/difference (set {:a 2 :c 2 :d 3})
@@ -217,6 +262,22 @@ My solution ([1](https://clojurians-log.clojureverse.org/beginners/2022-03-07/16
 (->> (group-by :version d)
      vals
      (map #(last (sort-by :date %))))
+```
+### [Count occurences of kv pair](https://clojurians-log.clojureverse.org/beginners/2022-11-19/1669314582.394249)
+```
+(defn count-pair
+  [data k v]
+  (->> data
+       (tree-seq #(or (map? %) (vector? %)) seq)
+       (filter #(and (map-entry? %) (= % [k v])))
+       count))
+```
+### [Group hash-map keys by namespace](https://clojurians-log.clojureverse.org/beginners/2022-11-24/1669302148.531609)
+```
+(-> (group-by (fn [[k v]] (namespace k)) {:a/x 1 :a/y 2 :b/x 1 :b/y 2})
+    (update-keys keyword)
+    (update-vals #(into {} %)))
+=> {:a #:a{:x 1, :y 2}, :b #:b{:x 1, :y 2}}
 ```
 
 ## Juxt
@@ -413,6 +474,23 @@ Or: `str/replace`
 
 (traverse (File. "."))
 ```
+### [Traverse, merge jsons](https://clojurians-log.clojureverse.org/beginners/2022-10-31/1667207371.709499)
+Add `spit` to some file:
+```
+(defn merge-jsons
+  "file should be java.io.File, eg (File. string-path)"
+  [file]
+  (let [all-files (.listFiles file)
+        subfolders (filter #(.isDirectory %) all-files)
+        subfiles (filter #(.isFile %) all-files)]
+    (->> subfiles
+         (map #(json/read-value (slurp %)))
+         (json/write-value-as-bytes))
+    (doseq [f subfolders]
+      (merge-jsons f))))
+
+; file-seq and .listFiles have different results (`file-seq` returns all files, .listFiles only these on the current "level").
+```
 
 ## Clojure Match
 
@@ -443,9 +521,11 @@ Or: `str/replace`
   (read-directory my-reader "path"))
 ```
 
-### Eval Reader Macro
+## Eval Reader Macro
 
 [Example for read-string](https://clojurians-log.clojureverse.org/beginners/2022-05-12/1652350178.750199)
+
+## Meta
 
 ### [Copy Meta](https://clojurians-log.clojureverse.org/clojure/2022-07-31/1659240765.955429)
 ```
