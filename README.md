@@ -77,16 +77,59 @@ Obtaining a particular part of the map by namespace.
 ```
 Better one is: `(= (namespace k) "x")`
 
-### Remove namespace
+### Remove namespace / unqualify
 
 Task:
 ```
 For example, I have a map like {:myapp/a 1 :myapp/b 2} and I want to get {:a 1 :b 2}
 ```
-[My solution](https://clojurians-log.clojureverse.org/beginners/2022-03-07/1646635599.183219):
+My solution ([1](https://clojurians-log.clojureverse.org/beginners/2022-03-07/1646635599.183219),[2](https://clojurians-log.clojureverse.org/beginners/2022-04-07/1649356297.453099)):
 ```
 (-> {:myapp/a 1 :myapp/b 2}
     (update-keys #(keyword (name %))))
+
+(keyword (name :qualified/banana))
+=> :banana
+```
+
+### Assoc multiple entries
+
+(upgrade of [multiple calls of assoc](https://clojurians-log.clojureverse.org/beginners/2022-03-07/1646646228.084089))
+```
+(assoc {} :a 1 :b 2)
+```
+
+### [Ratio of filtered to whole](https://clojurians-log.clojureverse.org/beginners/2022-03-11/1647019212.458059)
+```
+(defn printer-error [s]
+  (-> (filter #(> (int %) 109) s)
+      count
+      (str "/" (count s)))) 
+```
+
+### [List of words to list of sentences](https://clojurians-log.clojureverse.org/beginners/2022-03-11/1647022566.519439)
+```
+(->> (-> (clojure.string/join " " [ "Hello." "How" "are" "you?" "I" "am" "fine."])
+         (clojure.string/split #"(?<=\.)|(?<=\?)|(?<=\!)"))
+     (mapv clojure.string/trim))
+=> ["Hello." "How are you?" "I am fine."]
+```
+
+### [Filter seq of strings by seq of substrings](https://clojurians-log.clojureverse.org/beginners/2022-03-27/1648388852.441519)
+```
+(->> ["who grades foo bar" "who foo bar" "foo bar"]
+     (filter #(every? (fn [substring] (str/includes? % substring))
+                      ["who" "grade"])))
+=> ("who grades foo bar")
+```
+
+### [Entries difference](https://clojurians-log.clojureverse.org/beginners/2022-03-28/1648498188.361919)
+```
+(->> [{:ts "1633392058.124700"} {:ts "1633392055.124600"}]
+     (map :ts)
+     (map parse-double)
+     (apply -))
+=> 3.0001001358032227
 ```
 
 ## Juxt
@@ -117,23 +160,111 @@ is there any way to generate the weekly dates from 2017-2021. For example today 
      (take-while #(> 2022 (.getYear %))))
 ```
 
+### [Date to Epoch Second](https://clojurians-log.clojureverse.org/beginners/2022-03-09/1646830859.419169)
+
+```
+(-> "09-03-2022"
+    (LocalDate/parse (DateTimeFormatter/ofPattern "dd-MM-yyyy"))
+    (.atStartOfDay)
+    (.toInstant ZoneOffset/UTC)
+    (.getEpochSecond))
+```
+
+### [Parse with Offset](https://clojurians-log.clojureverse.org/beginners/2022-04-05/1649166217.759159)
+```
+(OffsetDateTime/of
+  (LocalDateTime/parse
+    "2022-03-31T21:35:35Z"
+    (DateTimeFormatter/ofPattern "yyyy-MM-dd'T'HH:mm:ssz"))
+  (ZoneOffset/of "-06:00"))
+```
+
+### [Minus 1 hour](https://clojurians-log.clojureverse.org/clojure/2022-05-02/1651497438.166679)
+```
+(.minusHours (java.time.LocalDateTime/now) 1)
+=> #object[java.time.LocalDateTime 0x46a8689 "2022-05-02T14:16:15.340366900"]
+
+(-> (java.time.LocalDateTime/now)
+    (.minusHours 1))
+=> #object[java.time.LocalDateTime 0x3c1cec05 "2022-05-02T14:16:37.845970"]
+
+(doto (java.time.LocalDateTime/now)
+  (.minusHours 1))
+=> #object[java.time.LocalDateTime 0x243b6d46 "2022-05-02T15:18:26.814173600"]
+
+```
+
 ## Strings, output, printing
 
-* [Interleave string with newline](https://clojurians-log.clojureverse.org/beginners/2021-07-11/1626013784.343500)
+### [Interleave chars with newline](https://clojurians-log.clojureverse.org/beginners/2021-07-11/1626013784.343500)
 ```
 (clojure.string/join "\n" "This is text")
 (clojure.pprint/cl-format false "~{~a~^~%~}" "This is text")
 ```
 
-* [Escape newlines](https://clojurians-log.clojureverse.org/beginners/2021-10-19/1634653649.312300)
+### [Interleave strings with newline](https://clojurians-log.clojureverse.org/beginners/2022-04-05/1649152071.068509)
+```
+(defn svg2pdf [svg-root-element target-box]
+  (clojure.string/join "\n"
+    ["q"
+     "1 0 0 1 29.5 30.5 cm"
+     "q"
+     "Q"
+     "Q"]))
+```
+
+### [Escape newlines](https://clojurians-log.clojureverse.org/beginners/2021-10-19/1634653649.312300)
 ```
 (clojure.pprint/cl-format nil "lorem lorem ~
 lorem lorem ~
 lorem lorem")
 ```
 
-* [Print k, v of hash-map](https://clojurians-log.clojureverse.org/beginners/2022-03-01/1646128570.468909)
+### [Print k, v of hash-map](https://clojurians-log.clojureverse.org/beginners/2022-03-01/1646128570.468909)
 ```
 (doseq [[k v] {:a 5 :b 6 :c 3}]
   (println "Key is" k " and val is" v))
+```
+
+### [Data to table string](https://clojurians-log.clojureverse.org/beginners/2022-04-09/1649535251.312509)
+```
+(defn print-tsv
+  ([ks rows] (->> (map #(str/join "\t" %) rows)
+                  (str/join "\n")
+                  (str (str/join "\t" ks) "\n")))
+  ([rows] (print-tsv (keys (first rows))
+                     (map vals rows))))
+
+(print-tsv '({:log "some text", :id 123} {:log "some other text" :id 124}))
+=> ":log\t:id\nsome text\t123\nsome other text\t124"
+```
+Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log "some other text" :id 124}]))`
+
+## Clojure Match
+
+### [Usage example](https://clojurians-log.clojureverse.org/clojure/2022-03-27/1648408344.837659)
+```
+(clojure.core.match/match [:a :b]
+  [:a :b] "a b combo"
+  [_ :b] "at least b")
+```
+
+## Protocols, records
+
+### [Usage example](https://clojurians-log.clojureverse.org/beginners/2022-04-26/1650965820.424429)
+```
+(defprotocol AbstractReader
+  (read-file [this path])
+  (read-directory [this path]))
+
+(defrecord Reader [exts ctx-fn]
+  AbstractReader
+  (read-file [{:keys [exts ctx-fn]} path]
+    (prn exts ctx-fn path))
+  (read-directory [{:keys [exts ctx-fn]} path]
+    (prn exts ctx-fn path)))
+
+(let [my-reader (->Reader 5 5)]
+  (read-file my-reader "path")
+  (read-directory my-reader "path"))
 ```
