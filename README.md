@@ -163,6 +163,61 @@ My solution ([1](https://clojurians-log.clojureverse.org/beginners/2022-03-07/16
 
 => ({:Number 3, :value 78} {:Number 1, :value 11} {:Number 2, :value 7})
 ```
+### [Partition when truthy](https://clojurians-log.clojureverse.org/beginners/2022-06-25/1656221936.551449)
+```
+(->> [1 3 2 4 1 2 3]
+     (partition-by (let [v (atom 0)]
+                     #(if (odd? %) 
+                        (swap! v inc) 
+                        @v))))
+
+=> ((1) (3 2 4) (1 2) (3))
+```
+### [.contains](https://clojurians-log.clojureverse.org/beginners/2022-07-29/1659087575.905159)
+```
+(.contains [[:a :b] [:c :d] [:e :f]] [:a :b])
+=> true
+```
+
+### [Item to category](https://clojurians-log.clojureverse.org/beginners/2022-08-01/1659359531.165349)
+```
+(defn to-category [n]
+  (->> [1 101 121 151]
+       (take-while #(>= n %))
+       count))
+```
+### [Partition by even index](https://clojurians-log.clojureverse.org/beginners/2022-08-02/1659425334.774789)
+```
+(let [xs [0 1 2 3 4 5]]
+  [(take-nth 2 xs)
+   (take-nth 2 (rest xs))])
+
+=> [(0 2 4) (1 3 5)]
+```
+### [Partition to columns](https://clojurians-log.clojureverse.org/beginners/2022-08-04/1659605112.075339)
+```
+(->> [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15  16]
+     (partition 4)
+     (apply map vector))
+
+=> ([1 5 9 13] [2 6 10 14] [3 7 11 15] [4 8 12 16])
+```
+### [Set difference](https://clojurians-log.clojureverse.org/beginners/2022-08-05/1659700884.241839)
+```
+(clojure.set/difference (set {:a 2 :c 2 :d 3})
+                        (set {:a 1 :c 2 :d 3}))
+                        
+=> #{[:a 2]}
+```
+### [Max in each group](https://clojurians-log.clojureverse.org/beginners/2022-08-23/1661238386.521359)
+```
+(->> (group-by :version d)
+     (map (fn [[_ rows]] (last (sort-by :date rows)))))
+
+(->> (group-by :version d)
+     vals
+     (map #(last (sort-by :date %))))
+```
 
 ## Juxt
 
@@ -302,12 +357,30 @@ Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log
 (StringUtils/rightPad "Breaded Mushrooms" 25 \.)
 => "Breaded Mushrooms........"
 ```
+### [Strip char](https://clojurians-log.clojureverse.org/beginners/2022-09-01/1662039856.491529)
+```
+; org.apache.commons.lang3.StringUtils
+(StringUtils/strip "a foo a" "a")
+=> " foo "
+```
+Or: `str/replace`
+
 ### [Parse with Locale](https://clojurians-log.clojureverse.org/beginners/2022-06-20/1655744349.637029)
 ```
 (.parse (NumberFormat/getInstance Locale/US)
         "1,505,000")
 
 => 1505000
+```
+### [RuleBasedNumberFormat](https://clojurians-log.clojureverse.org/clojure/2022-08-26/1661528535.253329)
+```
+(let [nf (RuleBasedNumberFormat. Locale/UK RuleBasedNumberFormat/ORDINAL)]
+  (dotimes [i 10]
+    (println i (.format nf i "%digits-ordinal"))))
+
+(let [nf (RuleBasedNumberFormat. Locale/FRENCH RuleBasedNumberFormat/ORDINAL)]
+  (dotimes [i 10]
+    (println i (.format  nf i "%digits-ordinal"))))
 ```
 
 ## Regex
@@ -320,6 +393,25 @@ Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log
      (map second))
 
 => ("hi.there" "hullo.there.again")
+```
+
+## Filesystem
+
+### [Read subvec of chars](https://clojurians-log.clojureverse.org/beginners/2022-08-07/1659884254.481899)
+```
+(subvec (-> (slurp "...")
+            (s/split-lines))
+        start end)
+```
+### [Traverse, print number of files](https://clojurians-log.clojureverse.org/beginners/2022-09-06/1662467300.679699)
+```
+(defn traverse [file]
+  (when (.isDirectory file)
+    (let [files (seq (.listFiles file))]
+      (println (.getAbsolutePath file) ":" (count files))
+      (run! traverse files))))
+
+(traverse (File. "."))
 ```
 
 ## Clojure Match
@@ -355,6 +447,12 @@ Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log
 
 [Example for read-string](https://clojurians-log.clojureverse.org/beginners/2022-05-12/1652350178.750199)
 
+### [Copy Meta](https://clojurians-log.clojureverse.org/clojure/2022-07-31/1659240765.955429)
+```
+(-> (def var1 value)
+    (reset-meta! (meta #'var2)))
+```
+
 ## Code reviews
 
 ### [Path to ns](https://clojurians-log.clojureverse.org/clojure/2022-06-04/1654348357.211349)
@@ -378,4 +476,21 @@ Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log
          (.drawImage g scaled 0 0 width height nil)
          (ImageIO/write simg "jpeg" (io/file file-out)))
        (catch Exception e (prn e))))
+```
+### Count increasing pairs ([1](https://clojurians-log.clojureverse.org/beginners/2022-08-21/1661106488.197009),[2](https://clojurians-log.clojureverse.org/beginners/2022-08-21/1661107414.334109))
+```
+(defn count-inc [coll]
+  (->> (partition 2 1 coll)
+       (filter (fn [[a b]]
+                 (> b a)))
+       count))
+
+(defn count-inc [coll]
+  (reduce (fn [n [a b]]
+            (if (> b a) (inc n) n))
+          0 
+          (partition 2 1 coll)))
+
+(count-inc [0 2 4 6])
+=> 3
 ```
