@@ -6,11 +6,46 @@ Each solution is also available at [Clojurians Slack Archive](https://clojurians
 
 ## Data Transformations
 
+### Nest sequence
+
+Example:
+```
+input: (1 2 :nest 3 4 :nest 5 6 7 :nest 8)
+
+output: (1 2 (3 4 (5 6 7 (8))))
+```
+
+My solution ([1](https://clojurians-log.clojureverse.org/clojure/2023-01-24/1674543932.399009),[2](https://clojurians-log.clojureverse.org/clojure/2023-01-24/1674547251.794549)):
+```
+(defn nest-seq [coll]
+  (when (seq coll)
+    (let [[f & r] coll]
+      (if (= f :nest)
+        (list (nest-seq r))
+        (cons f (nest-seq r))))))
+
+(nest-seq '(1 2 :nest 3 4 :nest 5 6 7 :nest 8))
+=> (1 2 (3 4 (5 6 7 (8))))
+
+; For nested input seq
+
+(defn nest-seq [coll]
+  (if (empty? coll) '()
+    (let [[f & r] coll]
+      (cond
+        (sequential? f) (cons (nest-seq f)
+                              (nest-seq r))
+        (= f :nest) (list (nest-seq r))
+        :else (cons f (nest-seq r))))))
+
+```
+
 ### Transform vector
 
-Task:
-
-  `I have a vector of timestamp [1600 1601 1602 1603] and another matrix containing some value [ [1600 1] [1603 3]] . I want final result like [[1600 1] "N/A" "NA " [1603 3]] `
+Example:
+```
+I have a vector of timestamp [1600 1601 1602 1603] and another matrix containing some value [ [1600 1] [1603 3]] . I want final result like [[1600 1] "N/A" "NA " [1603 3]].
+```
 
 [My solution](https://clojurians-log.clojureverse.org/beginners/2021-11-30/1638266313.001700):
 ```
@@ -33,7 +68,9 @@ Task:
 ### Group by second, return only values
   
 Example:
-`([1 0] [2 1] [3 0] [4 1] [5 0] [6 1]) to  ((1 3 5) (2 4 6))`
+```
+([1 0] [2 1] [3 0] [4 1] [5 0] [6 1]) to  ((1 3 5) (2 4 6))
+```
 
 [My solution](https://clojurians-log.clojureverse.org/beginners/2021-08-27/1630057186.058500):
 ```
@@ -87,7 +124,7 @@ Better one is: `(= (namespace k) "x")`
 
 ### Remove namespace / unqualify
 
-Task:
+Example:
 ```
 For example, I have a map like {:myapp/a 1 :myapp/b 2} and I want to get {:a 1 :b 2}
 ```
@@ -202,7 +239,7 @@ My solution ([1](https://clojurians-log.clojureverse.org/beginners/2022-03-07/16
 
 => ([1 5 9 13] [2 6 10 14] [3 7 11 15] [4 8 12 16])
 ```
-### [Split on values](https://clojurians-log.clojureverse.org/beginners/2022-09-16/1663363687.771219)
+### Split on values
 Example:
 ```
 (split nil nil) -> nil
@@ -210,7 +247,7 @@ Example:
 (split '(1 2 3) '(false true)) -> ((1 2) (3))
 (split '(1 2 3) '(true true)) -> ((1) (2) (3))
 ```
-My solution:
+[My solution](https://clojurians-log.clojureverse.org/beginners/2022-09-16/1663363687.771219):
 ```
 (defn split [v1 v2]
   (->> (interleave v1 (conj v2 (peek v2)))
@@ -227,7 +264,7 @@ My solution:
 (split '(1 2 3) [true false])
 => ((1) (2 3))
 ```
-### [Data to hash-map](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664370060.704369)
+### Data to hash-map
 Example:
 ```
 ({:name "name1", :id "61fd12debd75d9413d874a42"}
@@ -238,7 +275,7 @@ Example:
 "61dd3720ac8ceb2d1f4f8419" name2
 ...
 ```
-My solution (`reduce` variants: [1](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664370581.030139),[2](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664371426.920899),[3](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664371762.858699)):
+[My solution](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664370060.704369) (`reduce` variants: [1](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664370581.030139),[2](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664371426.920899),[3](https://clojurians-log.clojureverse.org/beginners/2022-09-28/1664371762.858699)):
 ```
 (->> '({:name "name1", :id "61fd12debd75d9413d874a42"}
        {:name "name2", :id "61dd3720ac8ceb2d1f4f8419"}
@@ -279,6 +316,50 @@ My solution (`reduce` variants: [1](https://clojurians-log.clojureverse.org/begi
     (update-vals #(into {} %)))
 => {:a #:a{:x 1, :y 2}, :b #:b{:x 1, :y 2}}
 ```
+### Combinations([1](https://clojurians-log.clojureverse.org/beginners/2023-02-07/1675765800.037539),[2](https://clojurians-log.clojureverse.org/beginners/2023-02-07/1675766719.167739))
+```
+(clojure.math.combinatorics/combinations '(10 20 11 30) 2)
+=> ((10 20) (10 11) (10 30) (20 11) (20 30) (11 30))
+
+; in specific order
+(defn comb2 [coll]
+  (for [x (range 1 (count coll))
+        y (range 0 x)]
+    [(nth coll y) (nth coll x)]))
+
+(comb2 [10 20 11 30])
+=> ([10 20] [10 11] [20 11] [10 30] [20 30] [11 30])
+(comb2 '(10 20 11 30))
+=> ([10 20] [10 11] [20 11] [10 30] [20 30] [11 30])
+```
+### Cartesian product over map
+Example:
+```
+Say I’ve got a map of keys and sequential values like:
+
+{:k [k1 k2 k3] :l [l1 l2]}
+How would I go about creating the permutations of all the keys and values in separate maps? e.g something like:
+
+[{:k k1 :l l1} {:k k2 :l :l1} … {:k k3 :l l2}]
+```
+
+[My solution](https://clojurians-log.clojureverse.org/clojure/2023-03-01/1677689447.470619):
+```
+(defn perm [m]
+  (let [ks (keys m)
+        vs (vals m)]
+    (mapv #(zipmap ks %)
+          (apply combi/cartesian-product vs))))
+
+(perm '{:k [k1 k2 k3] :l [l1 l2]})
+=> [{:k k1, :l l1} {:k k1, :l l2} {:k k2, :l l1} {:k k2, :l l2} {:k k3, :l l1} {:k k3, :l l2}]
+```
+
+### [Index of sublist](https://clojurians-log.clojureverse.org/beginners/2023-03-03/1677837236.340799)
+```
+(java.util.Collections/indexOfSubList [0 13 8 100 20 8 9 14] [100 20 8])
+=> 3
+```
 
 ## Juxt
 
@@ -288,6 +369,22 @@ My solution (`reduce` variants: [1](https://clojurians-log.clojureverse.org/begi
   (println x y))
 1 4
 => nil
+```
+### [Juxt split](https://clojurians-log.clojureverse.org/clojure/2022-12-15/1671080341.147289)
+```
+; traverses twice
+((juxt filter remove) odd? (range 10))
+=> [(1 3 5 7 9) (0 2 4 6 8)]
+
+; this traverses once
+(let [result (group-by pred coll)]
+  [(get result true) (get result false)])
+```
+### [Juxt sort](https://clojurians-log.clojureverse.org/beginners/2023-02-19/1676832821.868129)
+Sort by asc + desc.
+```
+(->> data
+     (sort-by (juxt #(- (:score %)) :size)))
 ```
 
 ## Time
@@ -326,6 +423,11 @@ is there any way to generate the weekly dates from 2017-2021. For example today 
     (DateTimeFormatter/ofPattern "yyyy-MM-dd'T'HH:mm:ssz"))
   (ZoneOffset/of "-06:00"))
 ```
+### [Parse with Locale](https://clojurians-log.clojureverse.org/beginners/2023-01-30/1675101018.717449)
+```
+(LocalDate/parse "Jan 30 2023" (DateTimeFormatter/ofPattern "MMM dd yyyy"
+                                                            Locale/UK))
+```
 
 ### [Minus 1 hour](https://clojurians-log.clojureverse.org/clojure/2022-05-02/1651497438.166679)
 ```
@@ -350,6 +452,18 @@ is there any way to generate the weekly dates from 2017-2021. For example today 
     (DateTimeFormatter/ofPattern "EEE MMM dd HH:mm:ss xxxx yyyy" (Locale. "US")))
   (DateTimeFormatter/ofPattern "yyyy-MM-dd HH-mm-ss" (Locale. "US")))
 ```
+### [Format to AM/PM](https://clojurians-log.clojureverse.org/clojure/2023-02-20/1676907438.845199)
+```
+(.format (DateTimeFormatter/ofPattern "hh:mm a" Locale/US)
+         (LocalDateTime/ofInstant (Instant/ofEpochSecond 1676901600)
+                                  ZoneOffset/UTC))
+=> "02:00 PM"
+
+(.format (DateTimeFormatter/ofPattern "h:mm a" Locale/US)
+         (LocalDateTime/ofInstant (Instant/ofEpochSecond 1676901600)
+                                  ZoneOffset/UTC))
+=> "2:00 PM"
+```
 ### [To Timestamp](https://clojurians-log.clojureverse.org/beginners/2022-05-07/1652163937.819909)
 ```
 (->> "2020-08-19 23-06-10"
@@ -364,7 +478,6 @@ is there any way to generate the weekly dates from 2017-2021. For example today 
 
 => "2022-06-18 09:40:31"
 ```
-
 
 ## Strings, output, printing
 
@@ -424,7 +537,7 @@ Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log
 (StringUtils/strip "a foo a" "a")
 => " foo "
 ```
-Or: `str/replace`
+Or `str/replace`
 
 ### [Parse with Locale](https://clojurians-log.clojureverse.org/beginners/2022-06-20/1655744349.637029)
 ```
@@ -532,6 +645,30 @@ Add `spit` to some file:
 (-> (def var1 value)
     (reset-meta! (meta #'var2)))
 ```
+## [Type Hints](https://clojurians-log.clojureverse.org/clojure/2022-12-16/1671223215.450749)
+```
+(class (into-array ["a" "b"]))
+=> [Ljava.lang.String;
+
+; Type hint will be: ^"[Ljava.lang.String;"
+```
+### [New type hints for Java methods](https://clojurians-log.clojureverse.org/beginners/2024-02-17/1708178694.409279)
+```
+(apply str (filter ^[char] Character/isUpperCase "FooBarBaz"))
+=> "FBB"
+```
+## Ns
+
+### [Public vars](https://clojurians-log.clojureverse.org/beginners/2023-02-02/1675337518.333069)
+```
+(vals (ns-publics 'clojure.core))
+```
+### [Only functions](https://clojurians-log.clojureverse.org/beginners/2023-02-02/1675340181.771829)
+```
+(filter #(and  (:arglists (meta %))
+               (not (:macro (meta %))))
+        (vals (ns-publics 'clojure.core)))
+```
 
 ## Code reviews
 
@@ -573,4 +710,131 @@ Add `spit` to some file:
 
 (count-inc [0 2 4 6])
 => 3
+```
+### Search in tree-seq ([1](https://clojurians-log.clojureverse.org/beginners/2023-01-27/1674849260.340859),[2](https://clojurians-log.clojureverse.org/beginners/2023-01-27/1674850147.738329),[3](https://clojurians-log.clojureverse.org/beginners/2023-01-27/1675288890.462689))
+```
+; 1
+(def data
+  [{:name "a" :children [{:name "b" :children [{:name "c" :children []}]}
+                         {:name "d" :children []}]}])
+
+(defn in-tree? [data item]
+  (.contains (tree-seq associative? identity data)
+             [:name item]))
+
+(defn search-name [{:keys [name children] :as data} searched-name]
+  (if (= name searched-name)
+    (assoc data :children [])
+    (assoc data :children [(->> children
+                                (filter #(in-tree? % searched-name))
+                                (#(search-name (first %) searched-name)))])))
+
+(defn search [data searched-name]
+  (when (in-tree? data searched-name)
+    (search-name data searched-name)))
+
+(search (first data) "a")
+=> {:name "a", :children []}
+(search (first data) "b")
+=> {:name "a", :children [{:name "b", :children []}]}
+(search (first data) "c")
+=> {:name "a", :children [{:name "b", :children [{:name "c", :children []}]}]}
+(search (first data) "d")
+=> {:name "a", :children [{:name "d", :children []}]}
+(search (first data) "e")
+=> nil
+
+; 2
+(defn in-tree? [data item]
+  (.contains (tree-seq associative? identity data)
+             [:name item]))
+
+(defn search [{:keys [name children] :as data} searched-name]
+  (when (in-tree? data searched-name)
+    (if (= name searched-name)
+      (assoc data :children [])
+      (assoc data :children [(into {} (mapcat #(search % searched-name) children))]))))
+
+; 3
+(defn includes-in-tags-tree? [tags substr]
+  (->> (tree-seq associative? identity tags)
+       (some #(and (map-entry? %)
+                   (let [[k v] %]
+                     (and (= k :name)
+                          (str/includes? v substr)))))))
+
+(includes-in-tags-tree? (first data) "a")                   ;; => true
+(includes-in-tags-tree? (first data) "b")                   ;; => true
+(includes-in-tags-tree? (first data) "c")                   ;; => true
+(includes-in-tags-tree? (first data) "d")                   ;; => true
+```
+### Fold table
+Example:
+```
+Hello All, I have data that looks like this:
+
+| :FieldName | :DimensionScheme | :SortRank |
+|------------|------------------|----------:|
+|     FAMILY |       FAMILY-SKU |         1 |
+|     SKU_ID |       FAMILY-SKU |         2 |
+This is in a http://tech.ml dataset format. I also can convert it to a map, which would look like this:
+[{:FieldName "FAMILY", :DimensionScheme "FAMILY-SKU", :SortRank 1} 
+ {:FieldName "SKU_ID", :DimensionScheme "FAMILY-SKU", :SortRank 2}]
+Either way, I am trying to write a function that gives me the following output: {:DimensionScheme "FAMILY-SKU", :group-by-params ["FAMILY" "SKU_ID"]} With the following constraints: 1. If there are multiple DimensionSchemes in the map, I would like to have a row/map entry for each DimensionScheme. 2. The position of the :FieldName string within the group-by-params vector has to match the :SortRank in the input data.
+```
+[My solution](https://clojurians-log.clojureverse.org/beginners/2023-02-02/1675365283.857439):
+```
+(def data [{:FieldName "FAMILY", :DimensionScheme "FAMILY-SKU", :SortRank 1}
+           {:FieldName "SKU_ID", :DimensionScheme "FAMILY-SKU", :SortRank 2}])
+
+(->> data
+     (group-by :DimensionScheme)
+     (mapv (fn [[k v]] {:DimensionScheme k
+                        :group-by-params (->> v (sort-by :SortRank) (mapv :FieldName))})))
+
+;=> [{:DimensionScheme "FAMILY-SKU", :group-by-params ["FAMILY" "SKU_ID"]}]
+```
+### Tree from data
+Example:
+```
+({:context ["root"], :values "lalala1"}
+ {:context ("root" "select-location"), :values "lalala2"}
+ {:context ("root" "select-location"), :values "lalala3"}
+ {:context ("root" "select-vendor"), :values "lalala4"}
+ {:context ("root" "select-vendor"), :values "lalala5"}
+ {:context ("root" "select-vendor"), :values "lalala6"}
+ {:context ["root"], :values "lalala7"}
+ {:context ["root"], :values "lalala8"})
+
+{:context "root", 
+ :values ["lalala1"
+          {:context "select-location" 
+           :values ["lalala2"
+                    "lalala3"]}
+          {:context "select-vendor"
+           :values "lalala4"
+                   "lalala5"
+                   "lalala6"}
+          "lalala7"
+          "lalala8"]}
+```
+[My solution](https://clojurians-log.clojureverse.org/clojure/2024-03-02/1709378967.435739):
+```
+(defn solution [data]
+  (into [] (comp (partition-by (comp first :context))
+                 (mapcat (fn [part]
+                           (if (empty? (-> part first :context))
+                             (mapv :values part)
+                             [{:context (-> part first :context first)
+                               :values  (solution (mapv #(update % :context rest) part))}]))))
+        data))
+
+(solution data)
+=>
+[{:context "root",
+  :values ["lalala1"
+           {:context "select-location", :values ["lalala2" "lalala3"]}
+           {:context "select-vendor", :values ["lalala4" "lalala5" "lalala6"]}
+           "lalala7"
+           "lalala8"]}]
 ```
