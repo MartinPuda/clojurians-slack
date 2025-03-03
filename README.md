@@ -156,6 +156,14 @@ My solution ([1](https://clojurians-log.clojureverse.org/beginners/2022-03-07/16
 => ((1 2 3) ("a" "b") [1] ("foo" "bar") [10 20])
 ```
 
+### [Sort by value](https://clojurians-log.clojureverse.org/beginners/2022-06-14/1655208273.278699)
+```
+(->> [{:Number 1, :value 11} {:Number 2, :value 7} {:Number 3, :value 78}]
+     (sort-by :value >))
+
+=> ({:Number 3, :value 78} {:Number 1, :value 11} {:Number 2, :value 7})
+```
+
 ## Juxt
 
 ### [Juxt usage](https://clojurians-log.clojureverse.org/beginners/2021-12-02/1638479674.293500)
@@ -233,6 +241,13 @@ is there any way to generate the weekly dates from 2017-2021. For example today 
      (.getTime)
      (java.sql.Timestamp.))
 ```
+### [Current DT for Zone](https://clojurians-log.clojureverse.org/beginners/2022-06-18/1655538066.121149)
+```
+(.format (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss")
+         (ZonedDateTime/now (ZoneId/of "Europe/Berlin")))
+
+=> "2022-06-18 09:40:31"
+```
 
 
 ## Strings, output, printing
@@ -280,6 +295,20 @@ lorem lorem")
 => ":log\t:id\nsome text\t123\nsome other text\t124"
 ```
 Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log "some other text" :id 124}]))`
+
+### [Pad from right](https://clojurians-log.clojureverse.org/beginners/2022-06-08/1654685232.009739)
+```
+; org.apache.commons.lang3.StringUtils
+(StringUtils/rightPad "Breaded Mushrooms" 25 \.)
+=> "Breaded Mushrooms........"
+```
+### [Parse with Locale](https://clojurians-log.clojureverse.org/beginners/2022-06-20/1655744349.637029)
+```
+(.parse (NumberFormat/getInstance Locale/US)
+        "1,505,000")
+
+=> 1505000
+```
 
 ## Regex
 
@@ -336,4 +365,17 @@ Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log
              (conj "main")
              rest)
          (str/join ".")))
+```
+### [Resize Image](https://clojurians-log.clojureverse.org/beginners/2022-06-23/1656004297.263769)
+```
+(defn resize
+  "Resize a file.  Pass in a width and height."
+  [file-in file-out width height]
+  (try (let [img (ImageIO/read (io/file file-in))
+             simg (BufferedImage. width height BufferedImage/TYPE_INT_RGB)
+             g (.getGraphics simg)
+             scaled (.getScaledInstance img width height Image/SCALE_SMOOTH)]
+         (.drawImage g scaled 0 0 width height nil)
+         (ImageIO/write simg "jpeg" (io/file file-out)))
+       (catch Exception e (prn e))))
 ```
