@@ -22,6 +22,14 @@ Task:
 => [[1600 1] "N/A" "N/A" [1603 3]]
 ```
 
+### [Add line numbers](https://clojurians-log.clojureverse.org/clojure/2022-05-10/1652210591.072349)
+```
+(->> (str/split-lines "foo\nbar\nbaz")
+     (map-indexed #(hash-map :line-number %1 :text %2)))
+
+=> ({:line-number 0, :text "foo"} {:line-number 1, :text "bar"} {:line-number 2, :text "baz"})
+```
+
 ### Group by second, return only values
   
 Example:
@@ -92,6 +100,12 @@ My solution ([1](https://clojurians-log.clojureverse.org/beginners/2022-03-07/16
 => :banana
 ```
 
+### [Keys to strings](https://clojurians-log.clojureverse.org/beginners/2022-05-10/1652194274.890839)
+```
+(update-keys {:a 1 :b 2} name)
+=> {"a" 1, "b" 2}
+```
+
 ### Assoc multiple entries
 
 (upgrade of [multiple calls of assoc](https://clojurians-log.clojureverse.org/beginners/2022-03-07/1646646228.084089))
@@ -130,6 +144,16 @@ My solution ([1](https://clojurians-log.clojureverse.org/beginners/2022-03-07/16
      (map parse-double)
      (apply -))
 => 3.0001001358032227
+```
+
+### [Subseqs with atoms](https://clojurians-log.clojureverse.org/beginners/2022-05-07/1651996549.938359)
+```
+(->> '((1 2 3) ((("a" "b") ([1] ("foo" "bar"))) [10 20]))
+     (tree-seq coll? identity)
+     (filter #(and (coll? %)
+                   (every? (complement coll?) %))))
+
+=> ((1 2 3) ("a" "b") [1] ("foo" "bar") [10 20])
 ```
 
 ## Juxt
@@ -194,6 +218,23 @@ is there any way to generate the weekly dates from 2017-2021. For example today 
 
 ```
 
+### [Format to Pattern](https://clojurians-log.clojureverse.org/beginners/2022-05-07/1651943963.249989)
+```
+(.format
+  (LocalDateTime/parse
+    "Wed Aug 19 23:06:10 +0000 2020"
+    (DateTimeFormatter/ofPattern "EEE MMM dd HH:mm:ss xxxx yyyy" (Locale. "US")))
+  (DateTimeFormatter/ofPattern "yyyy-MM-dd HH-mm-ss" (Locale. "US")))
+```
+### [To Timestamp](https://clojurians-log.clojureverse.org/beginners/2022-05-07/1652163937.819909)
+```
+(->> "2020-08-19 23-06-10"
+     (.parse (SimpleDateFormat. "yyyy-MM-dd hh-mm-ss"))
+     (.getTime)
+     (java.sql.Timestamp.))
+```
+
+
 ## Strings, output, printing
 
 ### [Interleave chars with newline](https://clojurians-log.clojureverse.org/beginners/2021-07-11/1626013784.343500)
@@ -240,6 +281,18 @@ lorem lorem")
 ```
 Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log "some other text" :id 124}]))`
 
+## Regex
+
+### [Exclude curly brackets](https://clojurians-log.clojureverse.org/beginners/2022-05-23/1653289128.046739)
+
+```
+(->> "we are {{hi.there}} boo§ {{hullo.there.again}}"
+     (re-seq #"(?:\{\{)([^\{\}]*)(?:\}\})")
+     (map second))
+
+=> ("hi.there" "hullo.there.again")
+```
+
 ## Clojure Match
 
 ### [Usage example](https://clojurians-log.clojureverse.org/clojure/2022-03-27/1648408344.837659)
@@ -267,4 +320,20 @@ Or `(with-out-str (clojure.pprint/print-table [{:log "some text", :id 123} {:log
 (let [my-reader (->Reader 5 5)]
   (read-file my-reader "path")
   (read-directory my-reader "path"))
+```
+
+### Eval Reader Macro
+
+[Example for read-string](https://clojurians-log.clojureverse.org/beginners/2022-05-12/1652350178.750199)
+
+## Code reviews
+
+### [Path to ns](https://clojurians-log.clojureverse.org/clojure/2022-06-04/1654348357.211349)
+```
+(defn path-to-ns [path]
+    (->> (-> (str/replace path #"-" "_")
+             (str/split #"/")
+             (conj "main")
+             rest)
+         (str/join ".")))
 ```
